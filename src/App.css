@@ -58,6 +58,38 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+  background: white;
+  max-width: 600px;
+  margin: 100px auto;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.preview-content {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.tag-buttons {
+  margin-bottom: 5px;
+}
+
+.tag-buttons button {
+  margin-right: 4px;
+}
+
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

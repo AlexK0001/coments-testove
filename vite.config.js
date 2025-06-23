@@ -7,4 +7,9 @@ export default defineConfig({
  build: {
   sourcemap: true,
  }
+ server: {
+  proxy: {
+    '/api': 'http://localhost:3001',
+  },
+},
 });
