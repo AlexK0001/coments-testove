@@ -89,6 +89,29 @@ button:focus-visible {
   margin-right: 4px;
 }
 
+.comment-tree {
+  max-width: 800px;
+  margin: 40px auto;
+}
+
+.comment-node {
+  border-left: 2px solid #ccc;
+  margin-bottom: 15px;
+  padding-left: 10px;
+}
+
+.comment-header {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
 
 @media (prefers-color-scheme: light) {
   :root {

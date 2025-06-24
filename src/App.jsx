@@ -1,5 +1,7 @@
 import React from 'react';
 import CommentForm from './components/CommentForm';
+import CommentTree from './components/CommentTree';
+import './App.css';
 
 function App() {
   const handleSubmit = async (data) => {
@@ -18,8 +20,9 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Leave a Comment</h1>
-      <CommentForm onSubmit={handleSubmit} />
+      <h1>Comments</h1>
+      <CommentForm onSubmit={() => { /* reload tree after posting */ }} />
+      <CommentTree />
     </div>
   );
 }
