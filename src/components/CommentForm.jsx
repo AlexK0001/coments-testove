@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PreviewModal from './PreviewModal';
 
 export default function CommentForm({ onSubmit }) {
@@ -11,10 +11,25 @@ export default function CommentForm({ onSubmit }) {
   });
 
   const [showPreview, setShowPreview] = useState(false);
+  const [captchaSvg, setCaptchaSvg] = useState('');
+  const [captchaError, setCaptchaError] = useState('');
+
+  const fetchCaptcha = async () => {
+    try {
+      const res = await fetch('/api/captcha');
+      const svg = await res.text();
+      setCaptchaSvg(svg);
+    } catch (err) {
+      console.error('Failed to load CAPTCHA', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
 
   const handleChange = e => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const insertTag = (tag, closing = true) => {
@@ -34,24 +49,43 @@ export default function CommentForm({ onSubmit }) {
     setForm(prev => ({ ...prev, text: newText }));
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    onSubmit(form);
-  };
+
+      // 1. Перевірка CAPTCHA перед відправкою
+      const res = await fetch('/api/captcha/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captcha: form.captcha }),
+      });
+  
+      const result = await res.json();
+  
+      if (!result.valid) {
+        setCaptchaError('Код із зображення введено неправильно');
+        await fetchCaptcha(); // оновити CAPTCHA
+        return;
+      }
+  
+      setCaptchaError('');
+      onSubmit(form); // передати форму зовні (в App)
+      setForm({ username: '', email: '', homepage: '', text: '', captcha: '' });
+      await fetchCaptcha(); // оновити CAPTCHA після відправки
+    };
 
   return (
     <form onSubmit={handleSubmit} className="comment-form">
       <div>
         <label>User Name *</label>
-        <input name="username" type="text" required pattern="[A-Za-z0-9]+" value={form.username} onChange={handleChange} />
+        <input type="text" name="username" value={form.username} onChange={handleChange} placeholder="User name" required />
       </div>
       <div>
         <label>Email *</label>
-        <input name="email" type="email" required value={form.email} onChange={handleChange} />
+        <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="E-mail" required />
       </div>
       <div>
         <label>Home page</label>
-        <input name="homepage" type="url" value={form.homepage} onChange={handleChange} />
+        <input type="url" name="homepage" value={form.homepage} onChange={handleChange} placeholder="Homepage (optional)" />
       </div>
       <div>
         <label>Message *</label>
@@ -61,17 +95,16 @@ export default function CommentForm({ onSubmit }) {
           <button type="button" onClick={() => insertTag('code')}>[code]</button>
           <button type="button" onClick={() => insertTag('a href="" title=""', false)}>[a]</button>
         </div>
-        <textarea name="text" required value={form.text} onChange={handleChange} />
+        <textarea name="text" value={form.text} onChange={handleChange} placeholder="Message..." required />
       </div>
 
-      <div>
-        <label>CAPTCHA *</label>
-        <img src="/api/captcha" alt="CAPTCHA" />
-        <input name="captcha" required pattern="[A-Za-z0-9]+" value={form.captcha} onChange={handleChange} />
-      </div>
+       {/* CAPTCHA */}
+       <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
+      <input type="text" name="captcha" value={form.captcha} onChange={handleChange} placeholder="Enter CAPTCHA" required />
+      {captchaError && <p style={{ color: 'red' }}>{captchaError}</p>}
 
       <button type="button" onClick={() => setShowPreview(true)}>Preview</button>
-      <button type="submit">Submit</button>
+      <button type="submit">Send</button>
 
       {showPreview && (
         <PreviewModal
