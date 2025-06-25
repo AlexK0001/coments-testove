@@ -31,44 +31,42 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/comments — отримати коментарі (пагінація + сортування)
 router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 25, sortField = 'createdAt', sortDir = 'desc' } = req.query;
-    const sort = { [sortField]: sortDir === 'asc' ? 1 : -1 };
+    const page = parseInt(req.query.page) || 1;
+    const limit = 25;
+    const skip = (page - 1) * limit;
 
-    // Тільки кореневі коментарі (без parentId)
+    const sortField = req.query.sort || 'createdAt';
+    const sortOrder = req.query.order === 'asc' ? 1 : -1;
+
+    // Отримуємо тільки топ-рівень коментарів (parentId: null)
     const rootComments = await Comment.find({ parentId: null })
-      .sort(sort)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .sort({ [sortField]: sortOrder })
+      .skip(skip)
+      .limit(limit)
+      .lean(); // lean — швидше і дозволяє мутувати результат
+
+    // Витягуємо всі дочірні коментарі, щоб зібрати дерево
+    const allComments = await Comment.find().lean();
+
+    // Функція для каскадної побудови дерева
+    const buildTree = (comment, all) => {
+      const children = all.filter(c => c.parentId?.toString() === comment._id.toString());
+      comment.replies = children.map(child => buildTree(child, all));
+      return comment;
+    };
+
+    const tree = rootComments.map(root => buildTree(root, allComments));
 
     const total = await Comment.countDocuments({ parentId: null });
     const totalPages = Math.ceil(total / limit);
 
-    // Отримуємо всі відповіді до root-коментарів
-    const rootIds = rootComments.map(c => c._id);
-    const replies = await Comment.find({ parentId: { $in: rootIds } });
-
-    // Групуємо відповіді
-    const repliesMap = {};
-    replies.forEach(r => {
-      const parentId = r.parentId.toString();
-      if (!repliesMap[parentId]) repliesMap[parentId] = [];
-      repliesMap[parentId].push(r);
-    });
-
-    // Додаємо replies до root-коментарів
-    const commentsWithReplies = rootComments.map(c => ({
-      ...c.toObject(),
-      replies: repliesMap[c._id.toString()] || [],
-    }));
-
-    res.json({ comments: commentsWithReplies, totalPages });
+    res.json({ comments: tree, totalPages, currentPage: page });
   } catch (err) {
-    console.error('❌ GET /comments error:', err.message);
-    res.status(500).json({ error: 'Failed to load comments' });
-  }
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  } 
 });
 
 export default router;
