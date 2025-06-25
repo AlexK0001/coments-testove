@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PreviewModal from './PreviewModal';
 
-export default function CommentForm({ onSubmit }) {
+export default function CommentForm({ onSubmit, parentId = null }) {
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -51,27 +51,44 @@ export default function CommentForm({ onSubmit }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
-
-      // 1. Перевірка CAPTCHA перед відправкою
-      const res = await fetch('/api/captcha/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ captcha: form.captcha }),
-      });
   
-      const result = await res.json();
+    // Перевірка CAPTCHA
+    const captchaRes = await fetch('/api/captcha/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ captcha: form.captcha }),
+    });
+    const captchaResult = await captchaRes.json();
+    if (!captchaResult.valid) {
+      setCaptchaError('Wrong CAPTCHA');
+      await fetchCaptcha();
+      return;
+    }
   
-      if (!result.valid) {
-        setCaptchaError('Код із зображення введено неправильно');
-        await fetchCaptcha(); // оновити CAPTCHA
-        return;
-      }
+    const formData = new FormData();
+    formData.append('username', form.username);
+    formData.append('email', form.email);
+    formData.append('homepage', form.homepage);
+    formData.append('text', form.text);
+    formData.append('captcha', form.captcha);
+    formData.append('parentId', parentId || '');
   
-      setCaptchaError('');
-      onSubmit(form); // передати форму зовні (в App)
+    const imageFile = e.target.image?.files?.[0];
+    const txtFile = e.target.textFile?.files?.[0];
+    if (imageFile) formData.append('image', imageFile);
+    if (txtFile) formData.append('textFile', txtFile);
+  
+    const res = await fetch('/api/comments', {
+      method: 'POST',
+      body: formData,
+    });
+  
+    if (res.ok) {
       setForm({ username: '', email: '', homepage: '', text: '', captcha: '' });
-      await fetchCaptcha(); // оновити CAPTCHA після відправки
-    };
+      await fetchCaptcha();
+      onSubmit(); // перезавантаження списку
+    }
+  };  
 
   return (
     <form onSubmit={handleSubmit} className="comment-form">
@@ -97,6 +114,16 @@ export default function CommentForm({ onSubmit }) {
         </div>
         <textarea name="text" value={form.text} onChange={handleChange} placeholder="Message..." required />
       </div>
+      <div>
+        <label>Attach image (.jpg/.png/.gif, ≤ 320×240)</label>
+        <input type="file" name="image" accept="image/png, image/jpeg, image/gif" />
+      </div>
+
+      <div>
+        <label>Attach .txt file (≤ 100 KB)</label>
+        <input type="file" name="textFile" accept=".txt" />
+      </div>
+
 
        {/* CAPTCHA */}
        <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
@@ -108,8 +135,8 @@ export default function CommentForm({ onSubmit }) {
 
       {showPreview && (
         <PreviewModal
-          text={form.text}
-          onClose={() => setShowPreview(false)}
+        text={form.text}
+        onClose={() => setShowPreview(false)}
         />
       )}
     </form>

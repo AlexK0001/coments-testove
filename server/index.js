@@ -2,7 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
+import path from 'path';
 import commentsRouter from './routes/comments.js';
 import captchaRouter from './routes/captcha.js';
 
@@ -18,6 +18,9 @@ app.use(express.json());
 // API Routes
 app.use('/api/comments', commentsRouter);
 app.use('/api/captcha', captchaRouter);
+
+// Files
+app.use('/uploads', express.static('uploads'));
 
 // DB + Start
 const start = async () => {

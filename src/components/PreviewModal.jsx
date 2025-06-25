@@ -1,14 +1,19 @@
 import React from 'react';
+import sanitizeHtml from 'sanitize-html';
 
 export default function PreviewModal({ text, onClose }) {
+  const cleanText = sanitizeHtml(text, {
+    allowedTags: ['a', 'code', 'i', 'strong'],
+    allowedAttributes: {
+      a: ['href', 'title'],
+    },
+  });
+
   return (
-    <div className="modal-backdrop">
-      <div className="modal">
+    <div className="modal">
+      <div className="modal-content">
         <h3>Preview</h3>
-        <div
-          className="preview-content"
-          dangerouslySetInnerHTML={{ __html: text }}
-        />
+        <div dangerouslySetInnerHTML={{ __html: cleanText }} />
         <button onClick={onClose}>Close</button>
       </div>
     </div>

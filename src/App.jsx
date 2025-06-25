@@ -8,12 +8,28 @@ const Comment = ({ data, onReply }) => {
   return (
     <div style={{ marginLeft: data.parentId ? 30 : 0, borderLeft: '1px solid #ccc', paddingLeft: 10 }}>
       <p><strong>{data.username}</strong>: <span dangerouslySetInnerHTML={{ __html: data.text }} /></p>
+
+      {/* Зображення */}
+      {data.imagePath && (
+        <div>
+          <img src={data.imagePath} alt="attachment" style={{ maxWidth: 320, maxHeight: 240 }} />
+        </div>
+      )}
+
+      {/* Текстовий файл */}
+      {data.txtAttachment && (
+        <pre style={{ background: '#f4f4f4', padding: '5px', whiteSpace: 'pre-wrap' }}>
+          {data.txtAttachment}
+        </pre>
+      )}
+
       <button onClick={() => setShowReply(!showReply)}>Reply</button>
       {showReply && (
         <CommentForm onSubmit={form => {
           onReply(form, data._id);
           setShowReply(false);
-        }} />
+        }} 
+        parentId={data._id}/>
       )}
       {data.replies && data.replies.map(reply => (
         <Comment key={reply._id} data={reply} onReply={onReply} />
@@ -21,6 +37,7 @@ const Comment = ({ data, onReply }) => {
     </div>
   );
 };
+
 
 export default function App() {
   const [comments, setComments] = useState([]);
@@ -61,7 +78,7 @@ export default function App() {
   return (
     <div className="container">
       <h2>Leave a Comment</h2>
-      <CommentForm onSubmit={form => handleSubmit(form)} />
+      <CommentForm onSubmit={form => handleSubmit(form)} parentId={null} />
 
       <div style={{ marginTop: 20, marginBottom: 20 }}>
         <label>Sort by:&nbsp;

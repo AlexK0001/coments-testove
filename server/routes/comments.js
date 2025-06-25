@@ -1,35 +1,68 @@
 import express from 'express';
+import { upload } from '../middleware/upload.js';
+// import sharp from 'sharp';
+// import sanitizeHtml from 'sanitize-html';
 import Comment from '../models/Comment.js';
-import { sanitizeText } from '../utils/sanitizeText.js';
+import fs from 'fs';
+// import path from 'path'
 
 const router = express.Router();
 
-// POST /api/comments — створення коментаря
-router.post('/', async (req, res) => {
-  try {
-    const { username, email, homepage, text, parentId } = req.body;
+// POST /api/comments — Створення нового коментаря
+router.post(
+  '/',
+  upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'textFile', maxCount: 1 }
+  ]),
+  async (req, res) => {
+    try {
+      const {
+        username,
+        email,
+        homepage,
+        text,
+        parentId,
+        captcha
+      } = req.body;
 
-    if (!username || !email || !text) {
-      return res.status(400).json({ error: 'Required fields missing' });
+      // ❗ Витягуємо шляхи файлів з req.files
+      const imageFile = req.files?.image?.[0];
+      const textFile = req.files?.textFile?.[0];
+
+      const imagePath = imageFile ? `/uploads/${imageFile.filename}` : null;
+
+      let txtAttachment = null;
+      if (textFile) {
+        const fileContent = fs.readFileSync(textFile.path, 'utf8');
+        txtAttachment = fileContent.slice(0, 100000); // обмеження 100кб
+      }
+
+      console.log('[DEBUG] req.body =', req.body);
+      console.log('[DEBUG] req.files =', req.files);
+
+
+      const comment = new Comment({
+        username,
+        email,
+        homepage,
+        text,
+        parentId: parentId || null,
+        imagePath,
+        txtAttachment,
+        createdAt: new Date()
+      });
+
+      await comment.save();
+      res.status(201).json({ message: 'Comment saved' });
+
+    } catch (err) {
+      console.error('[POST /api/comments]', err.message);
+      res.status(500).json({ error: 'Failed to save comment' });
     }
-
-    const cleanText = sanitizeText(text);
-
-    const comment = new Comment({
-      username,
-      email,
-      homepage,
-      text: cleanText,
-      parentId: parentId || null,
-    });
-
-    const saved = await comment.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    console.error('❌ POST /comments error:', err.message);
-    res.status(500).json({ error: 'Failed to post comment' });
   }
-});
+);
+
 
 router.get('/', async (req, res) => {
   try {
