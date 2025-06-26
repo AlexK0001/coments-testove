@@ -16,6 +16,9 @@ router.post(
     { name: 'textFile', maxCount: 1 }
   ]),
   async (req, res) => {
+    console.log('[DEBUG] req.body =', req.body);
+    console.log('[DEBUG] req.files =', req.files);
+
     try {
       const {
         username,

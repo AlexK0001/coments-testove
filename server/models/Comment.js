@@ -27,6 +27,12 @@ const commentSchema = new mongoose.Schema({
     ref: 'Comment',
     default: null,
   },
+  imagePath: {
+    type: String
+  },
+  txtAttachment: {
+    type: String
+  }
 }, {
   versionKey: false,
 });
