@@ -9,14 +9,12 @@ const Comment = ({ data, onReply }) => {
     <div style={{ marginLeft: data.parentId ? 30 : 0, borderLeft: '1px solid #ccc', paddingLeft: 10 }}>
       <p><strong>{data.username}</strong>: <span dangerouslySetInnerHTML={{ __html: data.text }} /></p>
 
-      {/* Зображення */}
       {data.imagePath && (
         <div>
           <img src={data.imagePath} alt="attachment" style={{ maxWidth: 320, maxHeight: 240 }} />
         </div>
       )}
 
-      {/* Текстовий файл */}
       {data.txtAttachment && (
         <pre style={{ background: '#f4f4f4', padding: '5px', whiteSpace: 'pre-wrap' }}>
           {data.txtAttachment}
@@ -25,19 +23,21 @@ const Comment = ({ data, onReply }) => {
 
       <button onClick={() => setShowReply(!showReply)}>Reply</button>
       {showReply && (
-        <CommentForm onSubmit={form => {
-          onReply(form, data._id);
-          setShowReply(false);
-        }} 
-        parentId={data._id}/>
+        <CommentForm
+          onSubmit={(form) => {
+            onReply(form, data._id);
+            setShowReply(false);
+          }}
+          parentId={data._id}
+        />
       )}
+
       {data.replies && data.replies.map(reply => (
         <Comment key={reply._id} data={reply} onReply={onReply} />
       ))}
     </div>
   );
 };
-
 
 export default function App() {
   const [comments, setComments] = useState([]);
@@ -56,29 +56,41 @@ export default function App() {
       console.error('❌ Помилка при завантаженні коментарів:', err);
     }
   };
-  
 
   useEffect(() => {
     fetchComments();
   }, [sort, order, page]);
 
   const handleSubmit = async (form, parentId = null) => {
+    const formData = new FormData();
+    formData.append('username', form.username);
+    formData.append('email', form.email);
+    formData.append('homepage', form.homepage);
+    formData.append('text', form.text);
+    formData.append('captcha', form.captcha);
+    formData.append('parentId', parentId || '');
+
+    if (form.image) formData.append('image', form.image);
+    if (form.textFile) formData.append('textFile', form.textFile);
+
     const res = await fetch('/api/comments', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, parentId }),
+      body: formData,
     });
 
     if (res.ok) {
-      setPage(1); // повертаємось на першу сторінку після додавання
+      setPage(1);
       await fetchComments();
+    } else {
+      const error = await res.json();
+      console.error('❌ Server error:', error);
     }
   };
 
   return (
     <div className="container">
       <h2>Leave a Comment</h2>
-      <CommentForm onSubmit={form => handleSubmit(form)} parentId={null} />
+      <CommentForm onSubmit={(form) => handleSubmit(form)} parentId={null} />
 
       <div style={{ marginTop: 20, marginBottom: 20 }}>
         <label>Sort by:&nbsp;

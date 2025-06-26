@@ -29,28 +29,32 @@ router.post(
         captcha
       } = req.body;
 
+      // Нормалізуємо parentId ('' → null)
+      const cleanParentId = parentId && parentId.trim() !== '' ? parentId : null;
+      let cleanParentId = null;
+      if (typeof parentId === 'string' && parentId.trim()) {
+        cleanParentId = parentId;
+      }
+
       // ❗ Витягуємо шляхи файлів з req.files
       const imageFile = req.files?.image?.[0];
       const textFile = req.files?.textFile?.[0];
 
       const imagePath = imageFile ? `/uploads/${imageFile.filename}` : null;
 
+
       let txtAttachment = null;
       if (textFile) {
-        const fileContent = fs.readFileSync(textFile.path, 'utf8');
-        txtAttachment = fileContent.slice(0, 100000); // обмеження 100кб
+        const fileContent = textFile.buffer.toString('utf8');
+        txtAttachment = fileContent.slice(0, 100000); // до 100кб
       }
-
-      console.log('[DEBUG] req.body =', req.body);
-      console.log('[DEBUG] req.files =', req.files);
-
 
       const comment = new Comment({
         username,
         email,
         homepage,
         text,
-        parentId: parentId || null,
+        parentId: cleanParentId,
         imagePath,
         txtAttachment,
         createdAt: new Date()
