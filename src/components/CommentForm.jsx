@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PreviewModal from './PreviewModal';
 
-export default function CommentForm({ onSubmit, parentId = null }) {
+export default function CommentForm({ parentId = null, onAfterSubmit }) {
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -10,12 +10,10 @@ export default function CommentForm({ onSubmit, parentId = null }) {
     captcha: '',
   });
 
-  const [imageFile, setImageFile] = useState(null);
-  const [txtFile, setTxtFile] = useState(null);
-
   const [showPreview, setShowPreview] = useState(false);
   const [captchaSvg, setCaptchaSvg] = useState('');
   const [captchaError, setCaptchaError] = useState('');
+  const [error, setError] = useState('');
 
   const fetchCaptcha = async () => {
     try {
@@ -40,7 +38,7 @@ export default function CommentForm({ onSubmit, parentId = null }) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const openTag = `<${tag}>`;
-    const closeTag = closing ? `</${tag}>` : '';
+    const closeTag = closing ? `</${tag.split(' ')[0]}>` : '';
     const selectedText = form.text.slice(start, end);
     const newText =
       form.text.slice(0, start) +
@@ -54,12 +52,16 @@ export default function CommentForm({ onSubmit, parentId = null }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    setCaptchaError('');
+    setError('');
 
+    // CAPTCHA перевірка
     const captchaRes = await fetch('/api/captcha/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ captcha: form.captcha }),
     });
+
     const captchaResult = await captchaRes.json();
     if (!captchaResult.valid) {
       setCaptchaError('Wrong CAPTCHA');
@@ -67,11 +69,32 @@ export default function CommentForm({ onSubmit, parentId = null }) {
       return;
     }
 
-    onSubmit({ ...form, image: imageFile, textFile: txtFile });
-    setForm({ username: '', email: '', homepage: '', text: '', captcha: '' });
-    setImageFile(null);
-    setTxtFile(null);
-    await fetchCaptcha();
+    const formData = new FormData();
+    formData.append('username', form.username);
+    formData.append('email', form.email);
+    formData.append('homepage', form.homepage);
+    formData.append('text', form.text);
+    formData.append('captcha', form.captcha);
+    formData.append('parentId', parentId || '');
+
+    const imageFile = e.target.image?.files?.[0];
+    const txtFile = e.target.textFile?.files?.[0];
+    if (imageFile) formData.append('image', imageFile);
+    if (txtFile) formData.append('textFile', txtFile);
+
+    const res = await fetch('/api/comments', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (res.ok) {
+      setForm({ username: '', email: '', homepage: '', text: '', captcha: '' });
+      await fetchCaptcha();
+      onAfterSubmit?.();
+    } else {
+      const data = await res.json();
+      setError(data.error || 'Failed to submit');
+    }
   };
 
   return (
@@ -98,20 +121,19 @@ export default function CommentForm({ onSubmit, parentId = null }) {
         </div>
         <textarea name="text" value={form.text} onChange={handleChange} required />
       </div>
-
       <div>
         <label>Attach image (.jpg/.png/.gif, ≤ 320×240)</label>
-        <input type="file" name="image" accept="image/*" onChange={e => setImageFile(e.target.files[0])} />
+        <input type="file" name="image" accept="image/png, image/jpeg, image/gif" />
       </div>
-
       <div>
         <label>Attach .txt file (≤ 100 KB)</label>
-        <input type="file" name="textFile" accept=".txt" onChange={e => setTxtFile(e.target.files[0])} />
+        <input type="file" name="textFile" accept=".txt" />
       </div>
 
       <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
       <input type="text" name="captcha" value={form.captcha} onChange={handleChange} required />
       {captchaError && <p style={{ color: 'red' }}>{captchaError}</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
 
       <button type="button" onClick={() => setShowPreview(true)}>Preview</button>
       <button type="submit">Send</button>

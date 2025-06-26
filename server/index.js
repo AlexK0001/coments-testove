@@ -20,7 +20,7 @@ app.use('/api/comments', commentsRouter);
 app.use('/api/captcha', captchaRouter);
 
 // Files
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.resolve('public/uploads')));
 
 // DB + Start
 const start = async () => {

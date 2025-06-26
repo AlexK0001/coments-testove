@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import CommentForm from './components/CommentForm';
 import './App.css';
 
-const Comment = ({ data, onReply }) => {
+const Comment = ({ data }) => {
   const [showReply, setShowReply] = useState(false);
 
   return (
     <div style={{ marginLeft: data.parentId ? 30 : 0, borderLeft: '1px solid #ccc', paddingLeft: 10 }}>
-      <p><strong>{data.username}</strong>: <span dangerouslySetInnerHTML={{ __html: data.text }} /></p>
+      <p>
+        <strong>{data.username}</strong>: <span dangerouslySetInnerHTML={{ __html: data.text }} />
+      </p>
 
       {data.imagePath && (
         <div>
@@ -23,17 +25,11 @@ const Comment = ({ data, onReply }) => {
 
       <button onClick={() => setShowReply(!showReply)}>Reply</button>
       {showReply && (
-        <CommentForm
-          onSubmit={(form) => {
-            onReply(form, data._id);
-            setShowReply(false);
-          }}
-          parentId={data._id}
-        />
+        <CommentForm parentId={data._id} onAfterSubmit={() => setShowReply(false)} />
       )}
 
       {data.replies && data.replies.map(reply => (
-        <Comment key={reply._id} data={reply} onReply={onReply} />
+        <Comment key={reply._id} data={reply} />
       ))}
     </div>
   );
@@ -61,36 +57,10 @@ export default function App() {
     fetchComments();
   }, [sort, order, page]);
 
-  const handleSubmit = async (form, parentId = null) => {
-    const formData = new FormData();
-    formData.append('username', form.username);
-    formData.append('email', form.email);
-    formData.append('homepage', form.homepage);
-    formData.append('text', form.text);
-    formData.append('captcha', form.captcha);
-    formData.append('parentId', parentId || '');
-
-    if (form.image) formData.append('image', form.image);
-    if (form.textFile) formData.append('textFile', form.textFile);
-
-    const res = await fetch('/api/comments', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (res.ok) {
-      setPage(1);
-      await fetchComments();
-    } else {
-      const error = await res.json();
-      console.error('❌ Server error:', error);
-    }
-  };
-
   return (
     <div className="container">
       <h2>Leave a Comment</h2>
-      <CommentForm onSubmit={(form) => handleSubmit(form)} parentId={null} />
+      <CommentForm parentId={null} onAfterSubmit={() => fetchComments()} />
 
       <div style={{ marginTop: 20, marginBottom: 20 }}>
         <label>Sort by:&nbsp;
@@ -111,7 +81,7 @@ export default function App() {
 
       <h3>All Comments</h3>
       {comments.map(comment => (
-        <Comment key={comment._id} data={comment} onReply={handleSubmit} />
+        <Comment key={comment._id} data={comment} />
       ))}
 
       <div style={{ marginTop: 20 }}>
