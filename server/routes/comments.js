@@ -1,6 +1,8 @@
 import express from 'express';
 import { upload } from '../middleware/upload.js';
 import Comment from '../models/Comment.js';
+import fs from 'fs';
+
 
 const router = express.Router();
 
@@ -50,8 +52,9 @@ router.post(
 
       let txtAttachment = null;
       if (textFile) {
-        const fileContent = textFile.buffer.toString('utf8');
-        txtAttachment = fileContent.slice(0, 100000); // до 100кб
+      const filePath = textFile.path;
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      txtAttachment = fileContent.slice(0, 100000);
       }
 
       const comment = new Comment({
@@ -69,7 +72,7 @@ router.post(
       res.status(201).json({ message: 'Comment saved' });
 
     } catch (err) {
-      console.error('[POST /api/comments]', err.message);
+      console.error('[POST /api/comments]', err);
       res.status(500).json({ error: 'Failed to save comment' });
     }
   }
