@@ -83,6 +83,9 @@ router.post(
       await comment.save();
       res.status(201).json({ message: 'Comment saved' });
 
+      const io = req.app.get('io');
+      io.emit('new-comment', comment); // Надсилаємо новий коментар усім клієнтам
+
     } catch (err) {
       console.error('[POST /api/comments]', err);
       res.status(500).json({ error: 'Failed to save comment' });

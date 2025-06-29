@@ -5,11 +5,49 @@ import dotenv from 'dotenv';
 import path from 'path';
 import commentsRouter from './routes/comments.js';
 import captchaRouter from './routes/captcha.js';
+import { Server } from 'socket.io';
+import http from 'http';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Створення HTTP-сервера для Socket.IO
+const server = http.createServer(app);
+
+// Підключення Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Зберігаємо io глобально
+app.set('io', io);
+
+// Створення HTTP-сервера для Socket.IO
+const server = http.createServer(app);
+
+// Підключення Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Зберігаємо io глобально
+app.set('io', io);
+
+// Слухаємо зʼєднання
+io.on('connection', socket => {
+  console.log('🟢 New client connected');
+  socket.on('disconnect', () => {
+    console.log('🔴 Client disconnected');
+  });
+});
 
 // Middlewares
 app.use(cors());
@@ -31,7 +69,7 @@ const start = async () => {
     });
     console.log('✅ MongoDB connected');
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Server running at http://localhost:${PORT}`);
     });
   } catch (error) {

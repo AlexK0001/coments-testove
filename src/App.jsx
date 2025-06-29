@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import CommentForm from './components/CommentForm';
 import './App.css';
+import { io } from 'socket.io-client';
+import { useEffect } from 'react';
+
+const socket = io(); // За замовчуванням з'єднується з тим же хостом
+
+useEffect(() => {
+  socket.on('new-comment', (newComment) => {
+    console.log('📥 Отримано новий коментар', newComment);
+    fetchComments(); // або просто додати його в setComments
+  });
+
+  return () => {
+    socket.off('new-comment');
+  };
+}, []);
 
 const Comment = ({ data }) => {
   const [showReply, setShowReply] = useState(false);
