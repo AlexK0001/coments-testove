@@ -2,7 +2,7 @@ import express from 'express';
 import { upload } from '../middleware/upload.js';
 import Comment from '../models/Comment.js';
 import fs from 'fs';
-
+import sanitizeHtml from 'sanitize-html';
 
 const router = express.Router();
 
@@ -57,11 +57,23 @@ router.post(
       txtAttachment = fileContent.slice(0, 100000);
       }
 
+      const allowedTags = ['a', 'i', 'strong', 'code'];
+      const allowedAttributes = {
+        a: ['href', 'title']
+      };
+
+      // Очистка тексту від XSS
+      const safeText = sanitizeHtml(text, {
+        allowedTags,
+        allowedAttributes,
+        allowedSchemes: ['http', 'https']
+      });
+
       const comment = new Comment({
         username,
         email,
         homepage,
-        text,
+        text: safeText, // використовуємо очищений HTML
         parentId: cleanParentId ? new mongoose.Types.ObjectId(cleanParentId) : null,
         imagePath,
         txtAttachment,
