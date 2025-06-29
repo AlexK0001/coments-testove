@@ -2,22 +2,10 @@ import express from 'express';
 import { upload } from '../middleware/upload.js';
 import Comment from '../models/Comment.js';
 import fs from 'fs';
-import sanitizeHtml from 'sanitize-html';
+import path from 'path';
 
 const router = express.Router();
 
-// ✅ Тимчасовий маршрут для виправлення некоректних parentId
-router.get('/fix-parentIds', async (req, res) => {
-  try {
-    const result = await Comment.updateMany({ parentId: '' }, { $set: { parentId: null } });
-    res.json({ fixed: result.modifiedCount });
-  } catch (err) {
-    console.error('[GET /fix-parentIds]', err.message);
-    res.status(500).json({ error: 'Failed to fix parentId fields' });
-  }
-});
-
-// ✅ Створення нового коментаря
 router.post(
   '/',
   upload.fields([
@@ -28,53 +16,53 @@ router.post(
     console.log('[DEBUG] req.body =', req.body);
     console.log('[DEBUG] req.files =', req.files);
 
+    const {
+      username,
+      email,
+      homepage,
+      text,
+      parentId,
+      captcha
+    } = req.body;
+
+    const errors = {};
+
+    if (!username || !/^[A-Za-z0-9]+$/.test(username)) {
+      errors.username = 'Username is required and must be alphanumeric.';
+    }
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      errors.email = 'Valid email is required.';
+    }
+    if (!text || text.length < 1) {
+      errors.text = 'Message is required.';
+    }
+    if (!captcha) {
+      errors.captcha = 'CAPTCHA is required.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ errors });
+    }
+
     try {
-      const {
-        username,
-        email,
-        homepage,
-        text,
-        parentId,
-        captcha
-      } = req.body;
-
-      // Нормалізуємо parentId ('' → null)
-      const cleanParentId =
-        typeof parentId === 'string' && parentId.trim()
-          ? parentId
-          : null;
-
       const imageFile = req.files?.image?.[0];
       const textFile = req.files?.textFile?.[0];
 
       const imagePath = imageFile ? `/uploads/${imageFile.filename}` : null;
-      const textPath = textFile ? `/uploads/${textFile.filename}` : null;
-
       let txtAttachment = null;
+
       if (textFile) {
-      const filePath = textFile.path;
-      const fileContent = fs.readFileSync(filePath, 'utf8');
-      txtAttachment = fileContent.slice(0, 100000);
+        const contentPath = path.resolve(textFile.path);
+        const fileContent = fs.readFileSync(contentPath, 'utf-8');
+        txtAttachment = fileContent.slice(0, 100000);
       }
-
-      const allowedTags = ['a', 'i', 'strong', 'code'];
-      const allowedAttributes = {
-        a: ['href', 'title']
-      };
-
-      // Очистка тексту від XSS
-      const safeText = sanitizeHtml(text, {
-        allowedTags,
-        allowedAttributes,
-        allowedSchemes: ['http', 'https']
-      });
 
       const comment = new Comment({
         username,
         email,
         homepage,
-        text: safeText, // використовуємо очищений HTML
-        parentId: cleanParentId ? new mongoose.Types.ObjectId(cleanParentId) : null,
+        text,
+        parentId: parentId?.trim() || null,
         imagePath,
         txtAttachment,
         createdAt: new Date()
@@ -82,24 +70,18 @@ router.post(
 
       await comment.save();
       res.status(201).json({ message: 'Comment saved' });
-
-      const io = req.app.get('io');
-      io.emit('new-comment', comment); // Надсилаємо новий коментар усім клієнтам
-
     } catch (err) {
-      console.error('[POST /api/comments]', err);
+      console.error('[POST /api/comments]', err.message);
       res.status(500).json({ error: 'Failed to save comment' });
     }
   }
 );
 
-// ✅ Отримання коментарів з побудовою дерева
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 25;
     const skip = (page - 1) * limit;
-
     const sortField = req.query.sort || 'createdAt';
     const sortOrder = req.query.order === 'asc' ? 1 : -1;
 
@@ -111,32 +93,21 @@ router.get('/', async (req, res) => {
 
     const allComments = await Comment.find().lean();
 
-    // 🔐 Захищений buildTree
     const buildTree = (comment, all) => {
-  const commentId = comment._id?.toString();
-
-  const children = all.filter(c => {
-    if (!c.parentId) return false;
-    try {
-      return c.parentId.toString() === commentId;
-    } catch (e) {
-      console.warn('[buildTree] Invalid parentId:', c.parentId);
-      return false;
-    }
-  });
-
-  comment.replies = children.map(child => buildTree(child, all));
-  return comment
+      const children = all.filter(c =>
+        c.parentId?.toString?.() === comment._id.toString()
+      );
+      comment.replies = children.map(child => buildTree(child, all));
+      return comment;
     };
 
-    const tree = rootComments.map(root => buildTree(root, allComments)).filter(Boolean);
-
+    const tree = rootComments.map(root => buildTree(root, allComments));
     const total = await Comment.countDocuments({ parentId: null });
     const totalPages = Math.ceil(total / limit);
 
     res.json({ comments: tree, totalPages, currentPage: page });
   } catch (err) {
-    console.error('[GET /api/comments]', err.message);
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });

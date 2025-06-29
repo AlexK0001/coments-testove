@@ -27,20 +27,6 @@ const io = new Server(server, {
 // Зберігаємо io глобально
 app.set('io', io);
 
-// Створення HTTP-сервера для Socket.IO
-const server = http.createServer(app);
-
-// Підключення Socket.IO
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
-});
-
-// Зберігаємо io глобально
-app.set('io', io);
-
 // Слухаємо зʼєднання
 io.on('connection', socket => {
   console.log('🟢 New client connected');

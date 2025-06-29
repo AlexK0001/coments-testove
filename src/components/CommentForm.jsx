@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PreviewModal from './PreviewModal';
 
-export default function CommentForm({ parentId = null, onAfterSubmit }) {
+export default function CommentForm({ onSubmit, parentId = null }) {
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -10,10 +10,10 @@ export default function CommentForm({ parentId = null, onAfterSubmit }) {
     captcha: '',
   });
 
-  const [showPreview, setShowPreview] = useState(false);
+  const [errors, setErrors] = useState({});
   const [captchaSvg, setCaptchaSvg] = useState('');
   const [captchaError, setCaptchaError] = useState('');
-  const [error, setError] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const fetchCaptcha = async () => {
     try {
@@ -38,7 +38,7 @@ export default function CommentForm({ parentId = null, onAfterSubmit }) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const openTag = `<${tag}>`;
-    const closeTag = closing ? `</${tag.split(' ')[0]}>` : '';
+    const closeTag = closing ? `</${tag}>` : '';
     const selectedText = form.text.slice(start, end);
     const newText =
       form.text.slice(0, start) +
@@ -52,29 +52,11 @@ export default function CommentForm({ parentId = null, onAfterSubmit }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    setErrors({});
     setCaptchaError('');
-    setError('');
-
-    // CAPTCHA перевірка
-    const captchaRes = await fetch('/api/captcha/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ captcha: form.captcha }),
-    });
-
-    const captchaResult = await captchaRes.json();
-    if (!captchaResult.valid) {
-      setCaptchaError('Wrong CAPTCHA');
-      await fetchCaptcha();
-      return;
-    }
 
     const formData = new FormData();
-    formData.append('username', form.username);
-    formData.append('email', form.email);
-    formData.append('homepage', form.homepage);
-    formData.append('text', form.text);
-    formData.append('captcha', form.captcha);
+    Object.entries(form).forEach(([key, value]) => formData.append(key, value));
     formData.append('parentId', parentId || '');
 
     const imageFile = e.target.image?.files?.[0];
@@ -87,13 +69,16 @@ export default function CommentForm({ parentId = null, onAfterSubmit }) {
       body: formData,
     });
 
+    const result = await res.json();
+
     if (res.ok) {
       setForm({ username: '', email: '', homepage: '', text: '', captcha: '' });
       await fetchCaptcha();
-      onAfterSubmit?.();
-    } else {
-      const data = await res.json();
-      setError(data.error || 'Failed to submit');
+      onSubmit();
+    } else if (res.status === 400 && result.errors) {
+      setErrors(result.errors);
+    } else if (result.error) {
+      setCaptchaError(result.error);
     }
   };
 
@@ -101,16 +86,21 @@ export default function CommentForm({ parentId = null, onAfterSubmit }) {
     <form onSubmit={handleSubmit} className="comment-form">
       <div>
         <label>User Name *</label>
-        <input type="text" name="username" value={form.username} onChange={handleChange} required />
+        <input type="text" name="username" value={form.username} onChange={handleChange} />
+        {errors.username && <div className="error">{errors.username}</div>}
       </div>
+
       <div>
         <label>Email *</label>
-        <input type="email" name="email" value={form.email} onChange={handleChange} required />
+        <input type="email" name="email" value={form.email} onChange={handleChange} />
+        {errors.email && <div className="error">{errors.email}</div>}
       </div>
+
       <div>
         <label>Home page</label>
         <input type="url" name="homepage" value={form.homepage} onChange={handleChange} />
       </div>
+
       <div>
         <label>Message *</label>
         <div className="tag-buttons">
@@ -119,21 +109,23 @@ export default function CommentForm({ parentId = null, onAfterSubmit }) {
           <button type="button" onClick={() => insertTag('code')}>[code]</button>
           <button type="button" onClick={() => insertTag('a href="" title=""', false)}>[a]</button>
         </div>
-        <textarea name="text" value={form.text} onChange={handleChange} required />
+        <textarea name="text" value={form.text} onChange={handleChange} />
+        {errors.text && <div className="error">{errors.text}</div>}
       </div>
+
       <div>
         <label>Attach image (.jpg/.png/.gif, ≤ 320×240)</label>
         <input type="file" name="image" accept="image/png, image/jpeg, image/gif" />
       </div>
+
       <div>
         <label>Attach .txt file (≤ 100 KB)</label>
         <input type="file" name="textFile" accept=".txt" />
       </div>
 
       <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
-      <input type="text" name="captcha" value={form.captcha} onChange={handleChange} required />
-      {captchaError && <p style={{ color: 'red' }}>{captchaError}</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <input type="text" name="captcha" value={form.captcha} onChange={handleChange} placeholder="Enter CAPTCHA" />
+      {captchaError && <div className="error">{captchaError}</div>}
 
       <button type="button" onClick={() => setShowPreview(true)}>Preview</button>
       <button type="submit">Send</button>
