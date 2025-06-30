@@ -7,6 +7,7 @@ import commentsRouter from './routes/comments.js';
 import captchaRouter from './routes/captcha.js';
 import { Server } from 'socket.io';
 import http from 'http';
+import session from 'express-session';
 
 dotenv.config();
 
@@ -45,6 +46,14 @@ app.use('/api/captcha', captchaRouter);
 
 // Files
 app.use('/uploads', express.static(path.resolve('public/uploads')));
+
+// Session
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'supersecret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false } // для локального http; на проді — true
+}));
 
 // DB + Start
 const start = async () => {

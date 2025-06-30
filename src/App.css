@@ -125,6 +125,12 @@ button:focus-visible {
   margin-top: 20px;
 }
 
+.error {
+  color: red;
+  font-size: 0.85em;
+  margin-top: 4px;
+}
+
 
 @media (prefers-color-scheme: light) {
   :root {

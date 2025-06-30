@@ -15,6 +15,25 @@ export default function CommentForm({ onSubmit, parentId = null }) {
   const [captchaError, setCaptchaError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 
+  const validateForm = () => {
+  const newErrors = {};
+  if (!username.trim() || !/^[A-Za-z0-9]+$/.test(username)) {
+    newErrors.username = 'Ім’я користувача обовʼязкове і має бути алфанумеричним.';
+  }
+  if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
+    newErrors.email = 'Введіть дійсну електронну адресу.';
+  }
+  if (!text.trim()) {
+    newErrors.text = 'Поле коментаря не може бути порожнім.';
+  }
+  if (!captcha.trim()) {
+    newErrors.captcha = 'Введіть код з CAPTCHA.';
+  }
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
+
+
   const fetchCaptcha = async () => {
     try {
       const res = await fetch('/api/captcha');
@@ -54,6 +73,8 @@ export default function CommentForm({ onSubmit, parentId = null }) {
     e.preventDefault();
     setErrors({});
     setCaptchaError('');
+
+    if (!validateForm()) return;
 
     const formData = new FormData();
     Object.entries(form).forEach(([key, value]) => formData.append(key, value));

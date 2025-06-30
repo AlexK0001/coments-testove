@@ -1,23 +1,20 @@
 import express from 'express';
-import { generateCaptcha } from '../utils/captcha.js';
+import svgCaptcha from 'svg-captcha';
 
 const router = express.Router();
 
-let currentCaptchaText = ''; // тимчасово зберігаємо CAPTCHA (демо)
-
 router.get('/', (req, res) => {
-  const captcha = generateCaptcha();
-  currentCaptchaText = captcha.text;
+  const captcha = svgCaptcha.create({
+    noise: 2,
+    size: 6,
+    ignoreChars: '0o1il', // без неоднозначних символів
+    background: '#f2f2f2'
+  });
+
+  req.session.captcha = captcha.text; // зберігаємо код у сесію
 
   res.type('svg');
-  res.send(captcha.data);
+  res.status(200).send(captcha.data); // віддаємо SVG клієнту
 });
 
-// Для перевірки (опціонально)
-router.post('/verify', (req, res) => {
-  const userInput = (req.body.captcha || '').toLowerCase();
-  const isValid = userInput === currentCaptchaText;
-  res.json({ valid: isValid });
-});
-
-export default router;
+export default router

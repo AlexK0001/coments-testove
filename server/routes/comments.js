@@ -68,6 +68,12 @@ router.post(
         createdAt: new Date()
       });
 
+      // Перевірка CAPTCHA
+      if (!req.session?.captcha || captcha.trim().toLowerCase() !== req.session.captcha.toLowerCase()) {
+        return res.status(400).json({ errors: { captcha: 'Неправильна CAPTCHA.' } });
+      }
+      req.session.captcha = null;
+
       await comment.save();
       res.status(201).json({ message: 'Comment saved' });
 
