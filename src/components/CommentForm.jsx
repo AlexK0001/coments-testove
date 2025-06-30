@@ -14,6 +14,7 @@ export default function CommentForm({ onSubmit, parentId = null }) {
   const [captchaUrl, setCaptchaUrl] = useState('');
   const [captchaError, setCaptchaError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [alertMesage, setAlertMessage] = useState('');
 
   // Генеруємо унікальний URL, щоб уникати кешу
   const refreshCaptcha = () => {
@@ -23,6 +24,13 @@ export default function CommentForm({ onSubmit, parentId = null }) {
   useEffect(() => {
     refreshCaptcha();
   }, []);
+
+  useEffect(() => {
+    if (alertMessage) {
+      const timeout = setTimeout(() => setAlertMessage(''), 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [alertMessage]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -93,12 +101,15 @@ export default function CommentForm({ onSubmit, parentId = null }) {
       if (res.ok) {
         setForm({ username: '', email: '', homepage: '', text: '', captcha: '' });
         refreshCaptcha();
+        setAlertMessage('✅ Коментар успішно надіслано!');
         onSubmit();
       } else if (res.status === 400 && result.errors) {
         setErrors(result.errors);
+        setAlertMessage('⚠️ Перевірте правильність заповнення форми.');
         refreshCaptcha();
       } else if (result.error) {
         setCaptchaError(result.error);
+        setAlertMessage(`❌ ${result.error}`);
         refreshCaptcha();
       }
     } catch (err) {
@@ -109,6 +120,7 @@ export default function CommentForm({ onSubmit, parentId = null }) {
 
   return (
     <form onSubmit={handleSubmit} className="comment-form">
+      {alertMessage && <div className="alert">{alertMessage}</div>}
       <div>
         <label>User Name *</label>
         <input type="text" name="username" value={form.username} onChange={handleChange} />
