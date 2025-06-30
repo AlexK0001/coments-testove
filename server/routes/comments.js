@@ -70,6 +70,11 @@ router.post(
 
       await comment.save();
       res.status(201).json({ message: 'Comment saved' });
+
+      // Витягуємо io з app
+      const io = req.app.get('io');
+      io.emit('new-comment', comment); // ← трансляція для всіх підключених клієнтів
+
     } catch (err) {
       console.error('[POST /api/comments]', err.message);
       res.status(500).json({ error: 'Failed to save comment' });
