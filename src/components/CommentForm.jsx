@@ -11,42 +11,36 @@ export default function CommentForm({ onSubmit, parentId = null }) {
   });
 
   const [errors, setErrors] = useState({});
-  const [captchaSvg, setCaptchaSvg] = useState('');
+  const [captchaUrl, setCaptchaUrl] = useState('');
   const [captchaError, setCaptchaError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 
-  const validateForm = () => {
-  const newErrors = {};
-  if (!username.trim() || !/^[A-Za-z0-9]+$/.test(username)) {
-    newErrors.username = 'Ім’я користувача обовʼязкове і має бути алфанумеричним.';
-  }
-  if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
-    newErrors.email = 'Введіть дійсну електронну адресу.';
-  }
-  if (!text.trim()) {
-    newErrors.text = 'Поле коментаря не може бути порожнім.';
-  }
-  if (!captcha.trim()) {
-    newErrors.captcha = 'Введіть код з CAPTCHA.';
-  }
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
-
-
-  const fetchCaptcha = async () => {
-    try {
-      const res = await fetch('/api/captcha');
-      const svg = await res.text();
-      setCaptchaSvg(svg);
-    } catch (err) {
-      console.error('Failed to load CAPTCHA', err);
-    }
+  // Генеруємо унікальний URL, щоб уникати кешу
+  const refreshCaptcha = () => {
+    setCaptchaUrl(`/api/captcha?${Date.now()}`);
   };
 
   useEffect(() => {
-    fetchCaptcha();
+    refreshCaptcha();
   }, []);
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!form.username.trim() || !/^[A-Za-z0-9]+$/.test(form.username)) {
+      newErrors.username = 'Ім’я користувача обовʼязкове і має бути алфанумеричним.';
+    }
+    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) {
+      newErrors.email = 'Введіть дійсну електронну адресу.';
+    }
+    if (!form.text.trim()) {
+      newErrors.text = 'Поле коментаря не може бути порожнім.';
+    }
+    if (!form.captcha.trim()) {
+      newErrors.captcha = 'Введіть код з CAPTCHA.';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleChange = e => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -74,7 +68,10 @@ export default function CommentForm({ onSubmit, parentId = null }) {
     setErrors({});
     setCaptchaError('');
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      refreshCaptcha(); // навіть при локальних помилках оновлюємо
+      return;
+    }
 
     const formData = new FormData();
     Object.entries(form).forEach(([key, value]) => formData.append(key, value));
@@ -85,21 +82,28 @@ export default function CommentForm({ onSubmit, parentId = null }) {
     if (imageFile) formData.append('image', imageFile);
     if (txtFile) formData.append('textFile', txtFile);
 
-    const res = await fetch('/api/comments', {
-      method: 'POST',
-      body: formData,
-    });
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        body: formData,
+      });
 
-    const result = await res.json();
+      const result = await res.json();
 
-    if (res.ok) {
-      setForm({ username: '', email: '', homepage: '', text: '', captcha: '' });
-      await fetchCaptcha();
-      onSubmit();
-    } else if (res.status === 400 && result.errors) {
-      setErrors(result.errors);
-    } else if (result.error) {
-      setCaptchaError(result.error);
+      if (res.ok) {
+        setForm({ username: '', email: '', homepage: '', text: '', captcha: '' });
+        refreshCaptcha();
+        onSubmit();
+      } else if (res.status === 400 && result.errors) {
+        setErrors(result.errors);
+        refreshCaptcha();
+      } else if (result.error) {
+        setCaptchaError(result.error);
+        refreshCaptcha();
+      }
+    } catch (err) {
+      console.error('❌ Network error:', err);
+      refreshCaptcha();
     }
   };
 
@@ -144,9 +148,12 @@ export default function CommentForm({ onSubmit, parentId = null }) {
         <input type="file" name="textFile" accept=".txt" />
       </div>
 
-      <div dangerouslySetInnerHTML={{ __html: captchaSvg }} />
-      <input type="text" name="captcha" value={form.captcha} onChange={handleChange} placeholder="Enter CAPTCHA" />
-      {captchaError && <div className="error">{captchaError}</div>}
+      <div>
+        <img src={captchaUrl} alt="captcha" style={{ display: 'block', marginBottom: 5 }} />
+        <input type="text" name="captcha" value={form.captcha} onChange={handleChange} placeholder="Enter CAPTCHA" />
+        {errors.captcha && <div className="error">{errors.captcha}</div>}
+        {captchaError && <div className="error">{captchaError}</div>}
+      </div>
 
       <button type="button" onClick={() => setShowPreview(true)}>Preview</button>
       <button type="submit">Send</button>
