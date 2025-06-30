@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect} from 'react';
 import PreviewModal from './PreviewModal';
 
 export default function CommentForm({ onSubmit, parentId = null }) {
@@ -14,7 +14,7 @@ export default function CommentForm({ onSubmit, parentId = null }) {
   const [captchaUrl, setCaptchaUrl] = useState('');
   const [captchaError, setCaptchaError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
-  const [alertMesage, setAlertMessage] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
 
   // Генеруємо унікальний URL, щоб уникати кешу
   const refreshCaptcha = () => {
@@ -161,7 +161,9 @@ export default function CommentForm({ onSubmit, parentId = null }) {
       </div>
 
       <div>
-        <img src={captchaUrl} alt="captcha" style={{ display: 'block', marginBottom: 5 }} />
+        {captchaUrl && (
+          <img src={captchaUrl} alt="captcha" style={{ display: 'block', marginBottom: 5 }} />
+        )}
         <input type="text" name="captcha" value={form.captcha} onChange={handleChange} placeholder="Enter CAPTCHA" />
         {errors.captcha && <div className="error">{errors.captcha}</div>}
         {captchaError && <div className="error">{captchaError}</div>}
