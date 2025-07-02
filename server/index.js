@@ -1,7 +1,7 @@
+import dotenvFlow from 'dotenv-flow';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import commentsRouter from './routes/comments.js';
 import captchaRouter from './routes/captcha.js';
@@ -11,7 +11,7 @@ import session from 'express-session';
 import mongoSanitize from 'express-mongo-sanitize';
 import helmet from 'helmet';
 
-dotenv.config();
+dotenvFlow.config();;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
