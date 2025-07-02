@@ -57,6 +57,11 @@ router.post(
         txtAttachment = fileContent.slice(0, 100000);
       }
 
+      if (parentId && !/^[a-f\d]{24}$/i.test(parentId.trim())) {
+        return res.status(400).json({ errors: { parentId: 'Invalid parentId format' } });
+      }
+
+
       const comment = new Comment({
         username,
         email,

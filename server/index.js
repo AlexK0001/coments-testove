@@ -8,6 +8,8 @@ import captchaRouter from './routes/captcha.js';
 import { Server } from 'socket.io';
 import http from 'http';
 import session from 'express-session';
+import mongoSanitize from 'express-mongo-sanitize';
+import helmet from 'helmet';
 
 dotenv.config();
 
@@ -38,7 +40,19 @@ io.on('connection', socket => {
 
 // Middlewares
 app.use(cors());
+app.use(helmet());
 app.use(express.json());
+app.use(mongoSanitize());
+
+app.use((req, res, next) => {
+  if (
+    req.body &&
+    Object.values(req.body).some(val => typeof val === 'object' && val !== null && !Array.isArray(val))
+  ) {
+    return res.status(400).json({ error: 'Nested objects are not allowed in request body.' });
+  }
+  next();
+});
 
 // API Routes
 app.use('/api/comments', commentsRouter);
