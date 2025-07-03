@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "heroku-postbuild": "cd server && npm install"
   },
   "dependencies": {
     "express-mongo-sanitize": "^2.2.0",

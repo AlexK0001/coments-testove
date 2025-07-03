@@ -1,3 +1,4 @@
+/* global process */
 import dotenvFlow from 'dotenv-flow';
 import express from 'express';
 import mongoose from 'mongoose';

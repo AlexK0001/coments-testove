@@ -1,51 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CommentForm from './components/CommentForm';
 import './App.css';
 import { io } from 'socket.io-client';
-import sanitizeHtml from 'sanitize-html';
 
-const socket = io(); // Підключення до WebSocket сервера
-
-const Comment = ({ data }) => {
-  const [showReply, setShowReply] = useState(false);
-
-  // Фільтрація HTML перед рендером
-  const cleanText = sanitizeHtml(data.text, {
-    allowedTags: ['a', 'code', 'strong', 'i'],
-    allowedAttributes: { a: ['href', 'title'] },
-    allowedSchemes: ['http', 'https'],
-    allowedSchemesByTag: { a: ['http', 'https'] }
-  });
-
-  return (
-    <div style={{ marginLeft: data.parentId ? 30 : 0, borderLeft: '1px solid #ccc', paddingLeft: 10 }}>
-      <p>
-        <strong>{data.username}</strong>: <span dangerouslySetInnerHTML={{ __html: cleanText }} />
-      </p>
-
-      {data.imagePath && (
-        <div>
-          <img src={data.imagePath} alt="attachment" style={{ maxWidth: 320, maxHeight: 240 }} />
-        </div>
-      )}
-
-      {data.txtAttachment && (
-        <pre style={{ background: '#f4f4f4', padding: '5px', whiteSpace: 'pre-wrap' }}>
-          {data.txtAttachment}
-        </pre>
-      )}
-
-      <button onClick={() => setShowReply(!showReply)}>Reply</button>
-      {showReply && (
-        <CommentForm parentId={data._id} onAfterSubmit={() => setShowReply(false)} />
-      )}
-
-      {data.replies && data.replies.map(reply => (
-        <Comment key={reply._id} data={reply} />
-      ))}
-    </div>
-  );
-};
+const socket = io();
 
 export default function App() {
   const [comments, setComments] = useState([]);
@@ -54,7 +12,7 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const res = await fetch(`/api/comments?sort=${sort}&order=${order}&page=${page}`);
       const json = await res.json();
@@ -63,28 +21,24 @@ export default function App() {
     } catch (err) {
       console.error('❌ Помилка при завантаженні коментарів:', err);
     }
-  };
-
-  useEffect(() => {
-    fetchComments();
   }, [sort, order, page]);
 
   useEffect(() => {
-    socket.on('new-comment', () => {
-      fetchComments(); // автоматичне оновлення при нових коментарях
-    });
+    fetchComments();
+  }, [fetchComments]);
 
+  useEffect(() => {
+    socket.on('new-comment', fetchComments);
     return () => {
-      socket.off('new-comment');
+      socket.off('new-comment', fetchComments);
     };
-  }, []);
+  }, [fetchComments]);
 
   return (
     <div className="container">
       <h2>Leave a Comment</h2>
       <CommentForm parentId={null} onAfterSubmit={fetchComments} />
-
-      <div style={{ marginTop: 20, marginBottom: 20 }}>
+      <div style={{ margin: '20px 0' }}>
         <label>Sort by:&nbsp;
           <select value={sort} onChange={e => setSort(e.target.value)}>
             <option value="createdAt">Date</option>
