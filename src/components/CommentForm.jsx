@@ -35,7 +35,7 @@ export default function CommentForm({ onSubmit, parentId = null }) {
   const validateForm = () => {
     const newErrors = {};
     if (!form.username.trim() || !/^[A-Za-z0-9]+$/.test(form.username)) {
-      newErrors.username = 'Ім’я користувача обовʼязкове і має бути алфанумеричним.';
+      newErrors.username = 'Імя користувача обовʼязкове і має бути алфанумеричним.';
     }
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) {
       newErrors.email = 'Введіть дійсну електронну адресу.';
