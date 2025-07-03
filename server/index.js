@@ -1,5 +1,5 @@
 /* global process */
-import dotenvFlow from 'dotenv-flow';
+import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -12,7 +12,7 @@ import session from 'express-session';
 import mongoSanitize from 'express-mongo-sanitize';
 import helmet from 'helmet';
 
-dotenvFlow.config();;
+dotenv.config();
 
 const app = express();
 // Ensure this file is run with Node.js, as 'process' is a Node.js global variable.
