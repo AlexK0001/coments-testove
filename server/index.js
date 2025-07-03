@@ -14,6 +14,7 @@ import helmet from 'helmet';
 dotenvFlow.config();;
 
 const app = express();
+// Ensure this file is run with Node.js, as 'process' is a Node.js global variable.
 const PORT = process.env.PORT || 3001;
 
 // Створення HTTP-сервера для Socket.IO

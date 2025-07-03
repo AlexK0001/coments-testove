@@ -1,5 +1,5 @@
 import multer from 'multer';
-import path from 'path';
+// import path from 'path';
 import fs from 'fs';
 
 // Створити директорію, якщо не існує
@@ -16,21 +16,28 @@ const storage = multer.diskStorage({
   }
 });
 
-const fileFilter = (req, file, cb) => {
-  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-  const allowedTextTypes = ['text/plain'];
-
-  if (allowedImageTypes.includes(file.mimetype) || allowedTextTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Unsupported file type'), false);
-  }
-};
-
 export const upload = multer({
   storage,
   limits: {
-    fileSize: 100 * 1024, // 100 KB
+    fileSize: 100000 // 100 KB
   },
-  fileFilter,
+  fileFilter(req, file, cb) {
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    const allowedTextTypes = ['text/plain'];
+
+    if (file.fieldname === 'image') {
+      if (!allowedImageTypes.includes(file.mimetype)) {
+        return cb(new Error('❌ Only .jpg, .png, .gif allowed'));
+      }
+    }
+
+    if (file.fieldname === 'textFile') {
+      if (!allowedTextTypes.includes(file.mimetype)) {
+        return cb(new Error('❌ Only .txt files are allowed'));
+      }
+    }
+
+    cb(null, true);
+  }
 });
+

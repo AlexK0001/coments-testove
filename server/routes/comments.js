@@ -3,6 +3,7 @@ import { upload } from '../middleware/upload.js';
 import Comment from '../models/Comment.js';
 import fs from 'fs';
 import path from 'path';
+import sanitizeHtml from 'sanitize-html';
 
 const router = express.Router();
 
@@ -54,19 +55,36 @@ router.post(
       if (textFile) {
         const contentPath = path.resolve(textFile.path);
         const fileContent = fs.readFileSync(contentPath, 'utf-8');
-        txtAttachment = fileContent.slice(0, 100000);
+        txtAttachment = sanitizeHtml(fileContent.slice(0, 100000), {
+          allowedTags: [],
+          allowedAttributes: {}
+        });
       }
 
       if (parentId && !/^[a-f\d]{24}$/i.test(parentId.trim())) {
         return res.status(400).json({ errors: { parentId: 'Invalid parentId format' } });
       }
 
+      const allowedTags = ['a', 'code', 'strong', 'i'];
+      const allowedAttributes = {
+        a: ['href', 'title']
+      };
+
+      const cleanText = sanitizeHtml(text, {
+        allowedTags,
+        allowedAttributes,
+        allowedSchemes: ['http', 'https'],
+        allowedSchemesByTag: {
+          a: ['http', 'https']
+        }
+      });
+
 
       const comment = new Comment({
         username,
         email,
         homepage,
-        text,
+        text: cleanText,
         parentId: parentId?.trim() || null,
         imagePath,
         txtAttachment,
