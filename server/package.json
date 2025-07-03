@@ -11,6 +11,7 @@
     "dotenv": "^16.3.1",
     "dotenv-flow": "^4.1.0",
     "express": "^4.19.2",
+    "express-mongo-sanitize": "^2.2.0",
     "express-session": "^1.18.1",
     "helmet": "^8.1.0",
     "mongoose": "^8.3.2",
