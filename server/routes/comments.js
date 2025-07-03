@@ -34,6 +34,9 @@ router.post(
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       errors.email = 'Valid email is required.';
     }
+    if (homepage && !/^https?:\/\/[\w.-]+\.[a-z]{2,}(\/[\w\-./?%&=]*)?$/i.test(homepage)) {
+      errors.homepage = 'Homepage must be a valid URL starting with http:// or https://';
+    }
     if (!text || text.length < 1) {
       errors.text = 'Message is required.';
     }
@@ -79,11 +82,28 @@ router.post(
         }
       });
 
+      const cleanUsername = sanitizeHtml(username, {
+        allowedTags: [],
+        allowedAttributes: {}
+      }).trim();
+
+      const cleanEmail = sanitizeHtml(email, {
+        allowedTags: [],
+        allowedAttributes: {}
+      }).trim();
+
+      const cleanHomepage = homepage
+        ? sanitizeHtml(homepage, {
+            allowedTags: [],
+            allowedAttributes: {}
+          }).trim()
+        : '';
+
 
       const comment = new Comment({
-        username,
-        email,
-        homepage,
+        username: cleanUsername,
+        email: cleanEmail,
+        homepage: cleanHomepage || null,
         text: cleanText,
         parentId: parentId?.trim() || null,
         imagePath,
