@@ -2,16 +2,25 @@ import React, { useState, useEffect } from 'react';
 import CommentForm from './components/CommentForm';
 import './App.css';
 import { io } from 'socket.io-client';
+import sanitizeHtml from 'sanitize-html';
 
-const socket = io(); // З'єднання з сервером WebSocket
+const socket = io(); // Підключення до WebSocket сервера
 
 const Comment = ({ data }) => {
   const [showReply, setShowReply] = useState(false);
 
+  // Фільтрація HTML перед рендером
+  const cleanText = sanitizeHtml(data.text, {
+    allowedTags: ['a', 'code', 'strong', 'i'],
+    allowedAttributes: { a: ['href', 'title'] },
+    allowedSchemes: ['http', 'https'],
+    allowedSchemesByTag: { a: ['http', 'https'] }
+  });
+
   return (
     <div style={{ marginLeft: data.parentId ? 30 : 0, borderLeft: '1px solid #ccc', paddingLeft: 10 }}>
       <p>
-        <strong>{data.username}</strong>: <span dangerouslySetInnerHTML={{ __html: data.text }} />
+        <strong>{data.username}</strong>: <span dangerouslySetInnerHTML={{ __html: cleanText }} />
       </p>
 
       {data.imagePath && (
@@ -61,9 +70,8 @@ export default function App() {
   }, [sort, order, page]);
 
   useEffect(() => {
-    socket.on('new-comment', (newComment) => {
-      console.log('📥 Отримано новий коментар', newComment);
-      fetchComments();
+    socket.on('new-comment', () => {
+      fetchComments(); // автоматичне оновлення при нових коментарях
     });
 
     return () => {
