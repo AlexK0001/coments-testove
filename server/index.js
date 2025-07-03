@@ -9,6 +9,7 @@ import captchaRouter from './routes/captcha.js';
 import { Server } from 'socket.io';
 import http from 'http';
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import mongoSanitize from 'express-mongo-sanitize';
 import helmet from 'helmet';
 
@@ -65,10 +66,16 @@ app.use('/uploads', express.static(path.resolve('public/uploads')));
 
 // Session
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'supersecret',
+  secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false } // для локального http; на проді — true
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI
+  }),
+  cookie: {
+    secure: true, // якщо HTTPS
+    maxAge: 1000 * 60 * 60 // 1 година
+  }
 }));
 
 // DB + Start
