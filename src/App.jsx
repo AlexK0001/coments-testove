@@ -3,7 +3,9 @@ import CommentForm from './components/CommentForm';
 import './App.css';
 import { io } from 'socket.io-client';
 
-const socket = io();
+const socket = io('https://<your-render-backend-url>.onrender.com', {
+  transports: ['websocket'],
+});
 
 export default function App() {
   const [comments, setComments] = useState([]);
