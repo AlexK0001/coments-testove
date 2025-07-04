@@ -131,6 +131,10 @@ router.post(
   }
 );
 
+router.get('/', (req, res) => {
+  res.json({ message: 'Маршрут /api/comments працює ✅' });
+});
+
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
