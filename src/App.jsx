@@ -17,9 +17,7 @@ export default function App() {
   const fetchComments = useCallback(async () => {
     try {
       const res = await fetch(`/api/comments?sort=${sort}&order=${order}&page=${page}`);
-      console.log('📡 RES:', res.status);
       const json = await res.json();
-      console.log('📦 JSON:', json);
       setComments(Array.isArray(json.comments) ? json.comments : []);
       setTotalPages(json.totalPages);
     } catch (err) {
