@@ -3,7 +3,7 @@ import CommentForm from './components/CommentForm';
 import './App.css';
 import { io } from 'socket.io-client';
 
-const socket = io('https://<your-render-backend-url>.onrender.com', {
+const socket = io('https://coments-testove.onrender.com', {
   transports: ['websocket'],
 });
 
