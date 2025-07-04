@@ -81,8 +81,10 @@ app.use(session({
 // DB + Start
 const start = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      tlsAllowInvalidCertificates: true
+    mongoose.connect(process.env.MONGO_URI, {
+      tls: true,
+      tlsAllowInvalidCertificates: false,
+      tlsAllowInvalidHostnames: false,
     });
     console.log('✅ MongoDB connected');
 
