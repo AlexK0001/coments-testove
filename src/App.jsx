@@ -18,7 +18,7 @@ export default function App() {
     try {
       const res = await fetch(`https://coments-testove.onrender.com/api/comments?sort=${sort}&order=${order}&page=${page}`);
       const json = await res.json();
-      setComments(json.comments);
+      setComments(Array.isArray(json.comments) ? json.comments : []);
       setTotalPages(json.totalPages);
     } catch (err) {
       console.error('❌ Помилка при завантаженні коментарів:', err);
