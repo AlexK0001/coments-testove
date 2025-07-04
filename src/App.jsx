@@ -16,7 +16,7 @@ export default function App() {
 
   const fetchComments = useCallback(async () => {
     try {
-      const res = await fetch(`/api/comments?sort=${sort}&order=${order}&page=${page}`);
+      const res = await fetch(`https://coments-testove.onrender.com/api/comments?sort=${sort}&order=${order}&page=${page}`);
       const json = await res.json();
       setComments(json.comments);
       setTotalPages(json.totalPages);
