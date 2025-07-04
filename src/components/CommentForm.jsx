@@ -18,7 +18,7 @@ export default function CommentForm({ onSubmit, parentId = null }) {
 
   // Генеруємо унікальний URL, щоб уникати кешу
   const refreshCaptcha = () => {
-    setCaptchaUrl(`/api/captcha?${Date.now()}`);
+    setCaptchaUrl(`https://coments-testove.onrender.com/api/captcha?${Date.now()}`);
   };
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function CommentForm({ onSubmit, parentId = null }) {
     if (txtFile) formData.append('textFile', txtFile);
 
     try {
-      const res = await fetch('/api/comments', {
+      const res = await fetch('https://coments-testove.onrender.com/api/comments', {
         method: 'POST',
         body: formData,
       });
